@@ -84,7 +84,7 @@ func (yylex *yyLex) Lex(yylval *yySymType) int {
 		yylex.Start, s = s, yylex.Start
 		return s
 	}
-	BEGIN(INITIAL)
+	_ = BEGIN
 	yyless := func(n int) {
 		n += yylex.s
 		yylex.t = n

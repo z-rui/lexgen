@@ -79,7 +79,7 @@ func ({{$yy}}lex *{{$yy}}Lex) Lex({{$yy}}lval *{{$yy}}SymType) int {
 		{{$yy}}lex.Start, s = s, {{$yy}}lex.Start
 		return s
 	}
-	BEGIN(INITIAL)
+	_ = BEGIN
 	{{$yy}}less := func(n int) {
 		n += {{$yy}}lex.s 
 		{{$yy}}lex.t = n
