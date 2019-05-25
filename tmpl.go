@@ -54,9 +54,6 @@ func (l *{{$yy}}Lex) fill() {
 	}
 }
 
-func (l *{{$yy}}Lex) shift() {
-}
-
 func (l *{{$yy}}Lex) next() rune {
 	for l.r+utf8.UTFMax > l.w && !utf8.FullRune(l.buf[l.r:l.w]) && l.err == nil {
 		l.fill()
