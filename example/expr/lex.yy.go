@@ -3,34 +3,53 @@
 package main
 
 import (
+	"fmt"
 	"io"
+	"os"
+	"sort"
 	"unicode/utf8"
 )
 
 import (
-	"fmt"
 	"math/big"
-	"os"
 )
 
-func (l *yyLex) Error(s string) {
-	fmt.Fprintf(os.Stderr, "%s\n", s)
-}
-
 type yyLex struct {
-	Start int32 // start condition
-	rd    io.Reader
-	buf   []byte
-	pos   int
-	s, t  int // buf[s:t] == token to be flushed
-	r, w  int // buf[r:w] == buffered text
-	err   error
+	Start   int32 // start condition
+	Path    string
+	Pos     int // position of current token
+	In      io.Reader
+	buf     []byte
+	linePos []int
+	s, t    int // buf[s:t] == token to be flushed
+	r, w    int // buf[r:w] == buffered text
+	err     error
 }
 
-func yyNewLexer(r io.Reader) *yyLex {
-	return &yyLex{
-		rd: r,
+func (l *yyLex) Init(r io.Reader) *yyLex {
+	l.Start = 0
+	l.Pos = 0
+	l.In = r
+	l.buf = make([]byte, 4096)
+	l.s, l.t, l.r, l.w = 0, 0, 0, 0
+	l.err = nil
+	return l
+}
+
+func (l *yyLex) ErrorAt(pos int, s string, v ...interface{}) {
+	if len(v) > 0 {
+		s = fmt.Sprintf(s, v...)
 	}
+	lin := sort.SearchInts(l.linePos, pos)
+	col := pos
+	if lin > 0 {
+		col -= l.linePos[lin-1] + 1
+	}
+	fmt.Fprintf(os.Stderr, "%s:%d:%d: %s\n", l.Path, lin+1, col+1, s)
+}
+
+func (l *yyLex) Error(s string) {
+	l.ErrorAt(l.Pos, s)
 }
 
 func (l *yyLex) fill() {
@@ -54,7 +73,13 @@ func (l *yyLex) fill() {
 		l.t -= l.s
 		l.s = 0
 	}
-	n, err := l.rd.Read(l.buf[l.w:])
+	n, err := l.In.Read(l.buf[l.w:])
+	// update newline positions
+	for i := l.w; i < l.w+n; i++ {
+		if l.buf[i] == '\n' {
+			l.linePos = append(l.linePos, l.Pos+(i-l.s))
+		}
+	}
 	l.w += n
 	if err != nil {
 		l.err = err
@@ -95,7 +120,7 @@ func (yylex *yyLex) Lex(yylval *yySymType) int {
 	_ = yymore
 
 yyS0:
-	yylex.pos += yylex.t - yylex.s
+	yylex.Pos += yylex.t - yylex.s
 	yylex.s = yylex.t
 	yyacc := -1
 	yylex.t = yylex.r

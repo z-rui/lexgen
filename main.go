@@ -58,6 +58,6 @@ func main() {
 	if !*nfa {
 		name := *outfile + ".go"
 		doTmpl(name, lexTmpl, p)
-		addimports(name, []string{"io", "unicode/utf8"})
+		addimports(name, []string{"io", "unicode/utf8", "fmt", "sort", "os"})
 	}
 }

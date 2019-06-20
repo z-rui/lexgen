@@ -8,5 +8,8 @@ import (
 )
 
 func main() {
-	yyParse(yyNewLexer(os.Stdin))
+	l := new(yyLex)
+	l.Init(os.Stdin)
+	l.Path = "<stdin>"
+	yyParse(l)
 }

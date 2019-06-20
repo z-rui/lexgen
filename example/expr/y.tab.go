@@ -81,22 +81,17 @@ var yyPgoto = [...]int{
 }
 
 type yySymType struct {
-	yys int // state
+	yys   int
+	yypos int
 
 	num *big.Rat
-
-}
-
-type yyLexer interface {
-	Lex(*yySymType) int
-	Error(string)
 }
 
 var yyDebug = 0 // debug info from parser
 
 // yyParse read tokens from yylex and parses input.
 // Returns result on success, or nil on failure.
-func yyParse(yylex yyLexer) *yySymType {
+func yyParse(yylex *yyLex) *yySymType {
 	var (
 		yyn, yyt int
 		yystate  = 0
@@ -110,6 +105,7 @@ func yyParse(yylex yyLexer) *yySymType {
 	goto yyaction
 yystack:
 	yyval.yys = yystate
+	yyval.yypos = yylex.Pos
 	yystack = append(yystack, yyval)
 	yystate = yyn
 	if yyDebug >= 2 {
@@ -129,6 +125,12 @@ yyaction:
 		if yyDebug >= 2 {
 			println("\tInput token", yyName[yymajor])
 		}
+	}
+	if yymajor == 0 && yystate == yyAccept {
+		if yyDebug >= 1 {
+			println("\tACCEPT!")
+		}
+		return &yystack[0]
 	}
 	yyn += yymajor
 	if 0 <= yyn && yyn < len(yyAction) && int(yyCheck[yyn]) == yymajor {
@@ -151,12 +153,6 @@ yydefault:
 	yyn = int(yyReduce[yystate])
 yyreduce:
 	if yyn == 0 {
-		if yymajor == 0 && yystate == yyAccept {
-			if yyDebug >= 1 {
-				println("\tACCEPT!")
-			}
-			return &yystack[0]
-		}
 		switch yyerror {
 		case 0: // new error
 			if yyDebug >= 1 {
@@ -181,7 +177,7 @@ yyreduce:
 					switch i {
 					case 0:
 						msg += ", expecting "
-					case n-1:
+					case n - 1:
 						msg += " or "
 					default:
 						msg += ", "
@@ -236,7 +232,6 @@ yyreduce:
 		yystack = yystack[:yyt]
 	}
 	switch yyn { // Semantic actions
-
 	case 2:
 
 		var v interface{}
@@ -246,23 +241,29 @@ yyreduce:
 			v = yyD[1].num
 		}
 		fmt.Println(v)
-	
+
 	case 3:
- yyerror = 0 
+		yyerror = 0
 	case 5:
- yyval.num = yyD[1].num 
+		yyval.num = yyD[1].num
 	case 6:
- yyval.num = yyD[1].num 
+		yyval.num = yyD[1].num
 	case 7:
- yyval.num = yyD[1].num.Neg(yyD[1].num) 
+		yyval.num = yyD[1].num.Neg(yyD[1].num)
 	case 8:
- yyval.num = yyD[0].num.Add(yyD[0].num, yyD[2].num) 
+		yyval.num = yyD[0].num.Add(yyD[0].num, yyD[2].num)
 	case 9:
- yyval.num = yyD[0].num.Sub(yyD[0].num, yyD[2].num) 
+		yyval.num = yyD[0].num.Sub(yyD[0].num, yyD[2].num)
 	case 10:
- yyval.num = yyD[0].num.Mul(yyD[0].num, yyD[2].num) 
+		yyval.num = yyD[0].num.Mul(yyD[0].num, yyD[2].num)
 	case 11:
- yyval.num = yyD[0].num.Quo(yyD[0].num, yyD[2].num) 
+
+		if yyD[2].num.Sign() == 0 {
+			yylex.ErrorAt(yyD[1].yypos, "division by zero")
+		} else {
+			yyval.num = yyD[0].num.Quo(yyD[0].num, yyD[2].num)
+		}
+
 	}
 	// look up goto
 	yyt = int(yyR1[yyn]) - yyLast

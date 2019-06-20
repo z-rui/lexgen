@@ -10,20 +10,42 @@ var lexTmpl = template.Must(template.New("yylex").Parse(`
 
 {{printf "%s" .Prologue}}
 type {{$yy}}Lex struct {
-	Start int32 // start condition
-	rd    io.Reader
-	buf   []byte
-	pos   int
-	s, t  int // buf[s:t] == token to be flushed
-	r, w  int // buf[r:w] == buffered text
-	err   error
+	Start   int32 // start condition
+	Path    string
+	Pos     int   // position of current token
+	In      io.Reader
+	buf     []byte
+	linePos []int
+	s, t    int // buf[s:t] == token to be flushed
+	r, w    int // buf[r:w] == buffered text
+	err     error
 {{printf "%s" .Defscode}}
 }
 
-func {{$yy}}NewLexer(r io.Reader) *{{$yy}}Lex {
-	return &{{$yy}}Lex{
-		rd: r,
+func (l *{{$yy}}Lex) Init(r io.Reader) *{{$yy}}Lex {
+	l.Start = 0
+	l.Pos = 0
+	l.In = r
+	l.buf = make([]byte, 4096)
+	l.s, l.t, l.r, l.w = 0, 0, 0, 0
+	l.err = nil
+	return l
+}
+
+func (l *{{$yy}}Lex) ErrorAt(pos int, s string, v ...interface{}) {
+	if len(v) > 0 {
+		s = fmt.Sprintf(s, v...)
 	}
+	lin := sort.SearchInts(l.linePos, pos)
+	col := pos
+	if lin > 0 {
+		col -= l.linePos[lin-1] + 1
+	}
+	fmt.Fprintf(os.Stderr, "%s:%d:%d: %s\n", l.Path, lin+1, col+1, s)
+}
+
+func (l *{{$yy}}Lex) Error(s string) {
+	l.ErrorAt(l.Pos, s)
 }
 
 func (l *{{$yy}}Lex) fill() {
@@ -47,7 +69,13 @@ func (l *{{$yy}}Lex) fill() {
 		l.t -= l.s
 		l.s = 0
 	}
-	n, err := l.rd.Read(l.buf[l.w:])
+	n, err := l.In.Read(l.buf[l.w:])
+	// update newline positions
+	for i := l.w; i < l.w+n; i++ {
+		if l.buf[i] == '\n' {
+			l.linePos = append(l.linePos, l.Pos + (i - l.s))
+		}
+	}
 	l.w += n
 	if err != nil {
 		l.err = err
@@ -92,7 +120,7 @@ func ({{$yy}}lex *{{$yy}}Lex) Lex({{$yy}}lval *{{$yy}}SymType) int {
 {{- range $i, $s := .States}}
 {{$yy}}S{{$i}}:
 {{- if eq $i 0}}
-	{{$yy}}lex.pos += {{$yy}}lex.t - {{$yy}}lex.s
+	{{$yy}}lex.Pos += {{$yy}}lex.t - {{$yy}}lex.s
 	{{$yy}}lex.s = {{$yy}}lex.t
 	{{$yy}}acc := -1
 	{{$yy}}lex.t = {{$yy}}lex.r

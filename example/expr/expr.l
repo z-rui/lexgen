@@ -1,14 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"math/big"
-	"os"
 )
-
-func (l *yyLex) Error(s string) {
-	fmt.Fprintf(os.Stderr, "%s\n", s)
-}
 
 %%
 

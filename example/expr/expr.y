@@ -44,5 +44,12 @@ expr:
 |	expr PLUS expr	{ $$ = $1.Add($1, $3) }
 |	expr MINUS expr	{ $$ = $1.Sub($1, $3) }
 |	expr TIMES expr	{ $$ = $1.Mul($1, $3) }
-|	expr DIV expr	{ $$ = $1.Quo($1, $3) }
+|	expr DIV expr
+	{
+		if $3.Sign() == 0 {
+			yylex.ErrorAt(@2, "division by zero")
+		} else {
+			$$ = $1.Quo($1, $3)
+		}
+	}
 ;
