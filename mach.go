@@ -18,7 +18,7 @@ type machState struct {
 	Tag   int
 }
 
-func (s *machState) DumpIfs(prefix string) string {
+func (s *machState) DumpIfs() string {
 	w := &strings.Builder{}
 	type edge struct {
 		rn  rn
@@ -43,12 +43,12 @@ func (s *machState) DumpIfs(prefix string) string {
 			e := edges[l]
 			cond := make([]string, 0, 2)
 			if l == 0 {
-				cond = append(cond, fmt.Sprintf("%q <= %sc ", e.rn[0], prefix))
+				cond = append(cond, fmt.Sprintf("%q <= yyc ", e.rn[0]))
 			}
 			if l+1 == len(edges) || e.rn[1]+1 < edges[l+1].rn[0] {
-				cond = append(cond, fmt.Sprintf("%sc <= %q ", prefix, e.rn[1]))
+				cond = append(cond, fmt.Sprintf("yyc <= %q ", e.rn[1]))
 			}
-			jump := fmt.Sprintf("goto %sS%d\n", prefix, e.dst)
+			jump := fmt.Sprintf("goto yyS%d\n", e.dst)
 			if len(cond) > 0 {
 				fmt.Fprintf(w, "if %s {\n%s}\n", strings.Join(cond, " && "), jump)
 			} else {
@@ -63,7 +63,7 @@ func (s *machState) DumpIfs(prefix string) string {
 		default:
 			m := l + (r-l)/2
 			e := edges[m]
-			fmt.Fprintf(w, "if %sc < %q {\n", prefix, e.rn[0])
+			fmt.Fprintf(w, "if yyc < %q {\n", e.rn[0])
 			dump(l, m, false)
 			w.WriteString("} else\n")
 			dump(m, r, true)

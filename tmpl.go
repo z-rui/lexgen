@@ -97,57 +97,57 @@ func (l *{{$yy}}Lex) next() rune {
 	return c
 }
 
-func ({{$yy}}lex *{{$yy}}Lex) Lex({{$yy}}lval *{{$yy}}SymType) int {
+func (yy *{{$yy}}Lex) Lex(yylval *{{$yy}}SymType) int {
 	const (
 		{{- range $i, $v := .Starts }}
 		{{.}}{{if not $i}} = iota{{end}} 
 		{{- end}}
 	)
 	BEGIN := func(s int32) int32 {
-		{{$yy}}lex.Start, s = s, {{$yy}}lex.Start
+		yy.Start, s = s, yy.Start
 		return s
 	}
 	_ = BEGIN
-	{{$yy}}less := func(n int) {
-		n += {{$yy}}lex.s 
-		{{$yy}}lex.t = n
-		{{$yy}}lex.r = n
+	yyless := func(n int) {
+		n += yy.s 
+		yy.t = n
+		yy.r = n
 	}
-	_ = {{$yy}}less
-	{{$yy}}more := func() { {{$yy}}lex.t = {{$yy}}lex.s }
-	_ = {{$yy}}more
+	_ = yyless
+	yymore := func() { yy.t = yy.s }
+	_ = yymore
 {{printf "%s" .Rulescode}}
 {{- range $i, $s := .States}}
-{{$yy}}S{{$i}}:
+yyS{{$i}}:
 {{- if eq $i 0}}
-	{{$yy}}lex.Pos += {{$yy}}lex.t - {{$yy}}lex.s
-	{{$yy}}lex.s = {{$yy}}lex.t
-	{{$yy}}acc := -1
-	{{$yy}}lex.t = {{$yy}}lex.r
-	{{$yy}}c := {{$yy}}lex.Start
+	yy.Pos += yy.t - yy.s
+	yy.s = yy.t
+	yyacc := -1
+	yy.t = yy.r
+	yyc := yy.Start
 {{- else}}
 {{- if ne .Tag -1}}
-	{{$yy}}acc = {{.Tag}}
-	{{$yy}}lex.t = {{$yy}}lex.r
+	yyacc = {{.Tag}}
+	yy.t = yy.r
 {{- end}}
 {{- if .Edges }}
-	{{$yy}}c = {{$yy}}lex.next()
+	yyc = yy.next()
 {{- end}}
 {{- end}}
-{{.DumpIfs $yy }}
-	goto {{$yy}}fin
+{{.DumpIfs}}
+	goto yyfin
 {{- end}}
 
-{{$yy}}fin:
-	{{$yy}}lex.r = {{$yy}}lex.t // put back read-ahead bytes
-	{{$yy}}text := {{$yy}}lex.buf[{{$yy}}lex.s:{{$yy}}lex.r]
-	if len({{$yy}}text) == 0 {
-		if {{$yy}}lex.err != nil {
+yyfin:
+	yy.r = yy.t // put back read-ahead bytes
+	yytext := yy.buf[yy.s:yy.r]
+	if len(yytext) == 0 {
+		if yy.err != nil {
 			return 0
 		}
 		panic("scanner is jammed")
 	}
-	switch {{$yy}}acc {
+	switch yyacc {
 	{{- range $i, $r := .Rules}}
 	{{- with $r.Action}}{{if ne . ""}}
 	case {{$i}}:
@@ -155,6 +155,6 @@ func ({{$yy}}lex *{{$yy}}Lex) Lex({{$yy}}lval *{{$yy}}SymType) int {
 	{{- end}}{{end}}
 	{{- end}}
 	}
-	goto {{$yy}}S0
+	goto yyS0
 }
 `))

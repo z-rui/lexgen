@@ -101,37 +101,37 @@ func (l *yyLex) next() rune {
 	return c
 }
 
-func (yylex *yyLex) Lex(yylval *yySymType) int {
+func (yy *yyLex) Lex(yylval *yySymType) int {
 	const (
 		INITIAL = iota
 	)
 	BEGIN := func(s int32) int32 {
-		yylex.Start, s = s, yylex.Start
+		yy.Start, s = s, yy.Start
 		return s
 	}
 	_ = BEGIN
 	yyless := func(n int) {
-		n += yylex.s
-		yylex.t = n
-		yylex.r = n
+		n += yy.s
+		yy.t = n
+		yy.r = n
 	}
 	_ = yyless
-	yymore := func() { yylex.t = yylex.s }
+	yymore := func() { yy.t = yy.s }
 	_ = yymore
 
 yyS0:
-	yylex.Pos += yylex.t - yylex.s
-	yylex.s = yylex.t
+	yy.Pos += yy.t - yy.s
+	yy.s = yy.t
 	yyacc := -1
-	yylex.t = yylex.r
-	yyc := yylex.Start
+	yy.t = yy.r
+	yyc := yy.Start
 	if '\x00' <= yyc && yyc <= '\x00' {
 		goto yyS1
 	}
 
 	goto yyfin
 yyS1:
-	yyc = yylex.next()
+	yyc = yy.next()
 	if yyc < '+' {
 		if yyc < ' ' {
 			if yyc < '\n' {
@@ -195,48 +195,48 @@ yyS1:
 	goto yyfin
 yyS2:
 	yyacc = 9
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS3:
 	yyacc = 7
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS4:
 	yyacc = 6
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS5:
 	yyacc = 4
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS6:
 	yyacc = 5
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS7:
 	yyacc = 2
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS8:
 	yyacc = 0
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS9:
 	yyacc = 1
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS10:
 	yyacc = 9
-	yylex.t = yylex.r
-	yyc = yylex.next()
+	yy.t = yy.r
+	yyc = yy.next()
 	if '0' <= yyc && yyc <= '9' {
 		goto yyS13
 	}
@@ -244,13 +244,13 @@ yyS10:
 	goto yyfin
 yyS11:
 	yyacc = 3
-	yylex.t = yylex.r
+	yy.t = yy.r
 
 	goto yyfin
 yyS12:
 	yyacc = 8
-	yylex.t = yylex.r
-	yyc = yylex.next()
+	yy.t = yy.r
+	yyc = yy.next()
 	if yyc < '0' {
 		if '.' <= yyc && yyc <= '.' {
 			goto yyS13
@@ -262,8 +262,8 @@ yyS12:
 	goto yyfin
 yyS13:
 	yyacc = 8
-	yylex.t = yylex.r
-	yyc = yylex.next()
+	yy.t = yy.r
+	yyc = yy.next()
 	if '0' <= yyc && yyc <= '9' {
 		goto yyS13
 	}
@@ -271,10 +271,10 @@ yyS13:
 	goto yyfin
 
 yyfin:
-	yylex.r = yylex.t // put back read-ahead bytes
-	yytext := yylex.buf[yylex.s:yylex.r]
+	yy.r = yy.t // put back read-ahead bytes
+	yytext := yy.buf[yy.s:yy.r]
 	if len(yytext) == 0 {
-		if yylex.err != nil {
+		if yy.err != nil {
 			return 0
 		}
 		panic("scanner is jammed")

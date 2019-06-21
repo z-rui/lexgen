@@ -81,8 +81,8 @@ var yyPgoto = [...]int{
 }
 
 type yySymType struct {
-	yys   int
-	yypos int
+	yys int
+	yyp int
 
 	num *big.Rat
 }
@@ -105,7 +105,6 @@ func yyParse(yylex *yyLex) *yySymType {
 	goto yyaction
 yystack:
 	yyval.yys = yystate
-	yyval.yypos = yylex.Pos
 	yystack = append(yystack, yyval)
 	yystate = yyn
 	if yyDebug >= 2 {
@@ -147,6 +146,7 @@ yyaction:
 		}
 		yymajor = -1
 		yyval = yylval
+		yyval.yyp = yylex.Pos
 		goto yystack
 	}
 yydefault:
@@ -230,6 +230,8 @@ yyreduce:
 		yyval = yyD[0]
 		yystate = yyval.yys
 		yystack = yystack[:yyt]
+	} else {
+		yyval.yyp = yylex.Pos
 	}
 	switch yyn { // Semantic actions
 	case 2:
@@ -259,7 +261,7 @@ yyreduce:
 	case 11:
 
 		if yyD[2].num.Sign() == 0 {
-			yylex.ErrorAt(yyD[1].yypos, "division by zero")
+			yylex.ErrorAt(yyD[1].yyp, "division by zero")
 		} else {
 			yyval.num = yyD[0].num.Quo(yyD[0].num, yyD[2].num)
 		}
