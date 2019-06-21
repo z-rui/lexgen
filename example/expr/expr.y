@@ -47,7 +47,7 @@ expr:
 |	expr DIV expr
 	{
 		if $3.Sign() == 0 {
-			yylex.ErrorAt(@2, "division by zero")
+			yy.ErrorAt(@2, "division by zero")
 		} else {
 			$$ = $1.Quo($1, $3)
 		}

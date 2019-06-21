@@ -81,8 +81,7 @@ var yyPgoto = [...]int{
 }
 
 type yySymType struct {
-	yys int
-	yyp int
+	yys, yyp int
 
 	num *big.Rat
 }
@@ -91,7 +90,7 @@ var yyDebug = 0 // debug info from parser
 
 // yyParse read tokens from yylex and parses input.
 // Returns result on success, or nil on failure.
-func yyParse(yylex *yyLex) *yySymType {
+func yyParse(yy *yyLex) *yySymType {
 	var (
 		yyn, yyt int
 		yystate  = 0
@@ -117,7 +116,7 @@ yyaction:
 		goto yydefault
 	}
 	if yymajor < 0 {
-		yymajor = yylex.Lex(&yylval)
+		yymajor = yy.Lex(&yylval)
 		if yyDebug >= 1 {
 			println("In state", yystate)
 		}
@@ -146,7 +145,7 @@ yyaction:
 		}
 		yymajor = -1
 		yyval = yylval
-		yyval.yyp = yylex.Pos
+		yyval.yyp = yy.Pos
 		goto yystack
 	}
 yydefault:
@@ -185,7 +184,7 @@ yyreduce:
 					msg += yyName[tok]
 				}
 			}
-			yylex.Error(msg)
+			yy.Error(msg)
 			fallthrough
 		case 1, 2: // partially recovered error
 			for { // pop states until error can be shifted
@@ -231,7 +230,7 @@ yyreduce:
 		yystate = yyval.yys
 		yystack = yystack[:yyt]
 	} else {
-		yyval.yyp = yylex.Pos
+		yyval.yyp = yy.Pos
 	}
 	switch yyn { // Semantic actions
 	case 2:
@@ -261,7 +260,7 @@ yyreduce:
 	case 11:
 
 		if yyD[2].num.Sign() == 0 {
-			yylex.ErrorAt(yyD[1].yyp, "division by zero")
+			yy.ErrorAt(yyD[1].yyp, "division by zero")
 		} else {
 			yyval.num = yyD[0].num.Quo(yyD[0].num, yyD[2].num)
 		}
