@@ -15,8 +15,8 @@ import (
 "("	return LPAR
 ")"	return RPAR
 \n	return NL
-[ \t\r\f\v]
-[0-9]+(|\.[0-9]*)|\.[0-9]+	{
+[ \t\r\f\v]+
+[0-9]+(\.[0-9]*)?|\.[0-9]+	{
 	yylval.num, _ = new(big.Rat).SetString(string(yytext))
 	return NUM
 }

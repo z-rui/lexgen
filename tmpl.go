@@ -121,9 +121,8 @@ func (yy *{{$yy}}Lex) Lex(yylval *{{$yy}}SymType) int {
 yyS{{$i}}:
 {{- if eq $i 0}}
 	yy.Pos += yy.t - yy.s
-	yy.s = yy.t
+	yy.s, yy.t = yy.t, yy.r
 	yyacc := -1
-	yy.t = yy.r
 	yyc := yy.Start
 {{- else}}
 {{- if ne .Tag -1}}
@@ -134,14 +133,14 @@ yyS{{$i}}:
 	yyc = yy.next()
 {{- end}}
 {{- end}}
-{{.DumpIfs}}
-	goto yyfin
+{{.DumpGotos -}}
 {{- end}}
 
 yyfin:
 	yy.r = yy.t // put back read-ahead bytes
 	yytext := yy.buf[yy.s:yy.r]
-	if len(yytext) == 0 {
+	yyleng := len(yytext)
+	if yyleng == 0 {
 		if yy.err != nil {
 			return 0
 		}

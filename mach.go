@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"unicode"
 )
 
 // the state machine
@@ -18,21 +19,46 @@ type machState struct {
 	Tag   int
 }
 
-func (s *machState) DumpIfs() string {
+func (s *machState) DumpGotos() string {
 	w := &strings.Builder{}
 	type edge struct {
 		rn  rn
 		dst int
 	}
 	edges := []edge{}
+	defdst := -1
 	for k, v := range s.Edges {
 		for _, rn := range v {
 			edges = append(edges, edge{rn, k})
+			if rn[1] == unicode.MaxRune {  // probably a default destination
+				defdst = k
+			}
 		}
 	}
 	sort.Slice(edges, func(i, j int) bool {
 		return edges[i].rn[0] < edges[j].rn[0]
 	})
+	// disable defdst if the edges don't cover [0, MaxRune]
+	if n := len(edges); n < 1 || edges[0].rn[0] != 0 || edges[n-1].rn[1] != unicode.MaxRune {
+		defdst = -1
+	} else {
+		for i := 1; i < n; i++ {
+			if edges[i-1].rn[1] + 1 != edges[i].rn[0] {
+				defdst = -1
+				break
+			}
+		}
+	}
+	if defdst != -1 {
+		n := 0
+		for _, e := range edges {
+			if e.dst != defdst {
+				edges[n] = e
+				n++
+			}
+		}
+		edges = edges[:n]
+	}
 
 	var dump func(int, int, bool)
 	dump = func(l, r int, afterElse bool) {
@@ -43,34 +69,60 @@ func (s *machState) DumpIfs() string {
 			e := edges[l]
 			cond := make([]string, 0, 2)
 			if l == 0 {
-				cond = append(cond, fmt.Sprintf("%q <= yyc ", e.rn[0]))
+				cond = append(cond, fmt.Sprintf("%q <= yyc", e.rn[0]))
 			}
 			if l+1 == len(edges) || e.rn[1]+1 < edges[l+1].rn[0] {
-				cond = append(cond, fmt.Sprintf("yyc <= %q ", e.rn[1]))
+				if len(cond) == 1 && e.rn[0] == e.rn[1] {
+					cond[0] = fmt.Sprintf("yyc == %q", e.rn[1])
+				} else {
+					cond = append(cond, fmt.Sprintf("yyc <= %q", e.rn[1]))
+				}
 			}
 			jump := fmt.Sprintf("goto yyS%d\n", e.dst)
 			if len(cond) > 0 {
 				fmt.Fprintf(w, "if %s {\n%s}\n", strings.Join(cond, " && "), jump)
+			} else if afterElse {
+				fmt.Fprintf(w, "{\n%s}\n", jump)
 			} else {
-				if afterElse {
-					w.WriteByte('{')
-				}
 				w.WriteString(jump)
-				if afterElse {
-					w.WriteByte('}')
-				}
 			}
 		default:
-			m := l + (r-l)/2
-			e := edges[m]
-			fmt.Fprintf(w, "if yyc < %q {\n", e.rn[0])
-			dump(l, m, false)
-			w.WriteString("} else\n")
-			dump(m, r, true)
+			use_switch := true
+			for _, e := range edges {
+				if e.rn[0] != e.rn[1] {
+					use_switch = false
+					break
+				}
+			}
+			if use_switch {
+				if afterElse {
+					w.WriteString("{\n")
+				}
+				w.WriteString("switch yyc {\n")
+				for _, e := range edges {
+					fmt.Fprintf(w, "case %q: goto yyS%d\n", e.rn[0], e.dst)
+				}
+				w.WriteString("}\n")
+				if afterElse {
+					w.WriteString("}\n")
+				}
+			} else {
+				m := l + (r-l)/2
+				e := edges[m]
+				fmt.Fprintf(w, "if yyc < %q {\n", e.rn[0])
+				dump(l, m, false)
+				w.WriteString("} else\n")
+				dump(m, r, true)
+			}
 		}
 	}
 	if n := len(edges); n > 0 {
 		dump(0, n, false)
+	}
+	if defdst != -1 {
+		fmt.Fprintf(w, "goto yyS%d\n", defdst)
+	} else {
+		fmt.Fprintf(w, "goto yyfin\n")
 	}
 	return w.String()
 }

@@ -121,118 +121,117 @@ func (yy *yyLex) Lex(yylval *yySymType) int {
 
 yyS0:
 	yy.Pos += yy.t - yy.s
-	yy.s = yy.t
+	yy.s, yy.t = yy.t, yy.r
 	yyacc := -1
-	yy.t = yy.r
 	yyc := yy.Start
-	if '\x00' <= yyc && yyc <= '\x00' {
+	if yyc == '\x00' {
 		goto yyS1
 	}
-
 	goto yyfin
+
 yyS1:
 	yyc = yy.next()
 	if yyc < '+' {
 		if yyc < ' ' {
 			if yyc < '\n' {
-				if yyc < '\t' {
-					if '\x00' <= yyc {
-						goto yyS2
-					}
-				} else {
+				if '\t' <= yyc {
 					goto yyS3
 				}
 			} else if yyc < '\v' {
 				goto yyS4
-			} else if yyc < '\x0e' {
+			} else if yyc <= '\r' {
 				goto yyS3
-			} else {
-				goto yyS2
-			}
-		} else if yyc < '(' {
-			if yyc < '!' {
-				goto yyS3
-			} else {
-				goto yyS2
 			}
 		} else if yyc < ')' {
-			goto yyS5
+			if yyc < '(' {
+				if yyc <= ' ' {
+					goto yyS3
+				}
+			} else {
+				goto yyS5
+			}
 		} else if yyc < '*' {
 			goto yyS6
 		} else {
 			goto yyS7
 		}
-	} else if yyc < '0' {
+	} else if yyc < '/' {
 		if yyc < '-' {
-			if yyc < ',' {
+			if yyc <= '+' {
 				goto yyS8
-			} else {
-				goto yyS2
 			}
 		} else if yyc < '.' {
 			goto yyS9
-		} else if yyc < '/' {
+		} else {
 			goto yyS10
-		} else {
-			goto yyS11
 		}
-	} else if yyc < 'Ø' {
-		if yyc < ':' {
+	} else if yyc < '×' {
+		if yyc < '0' {
+			goto yyS11
+		} else if yyc <= '9' {
 			goto yyS12
-		} else if yyc < '×' {
-			goto yyS2
-		} else {
-			goto yyS7
 		}
 	} else if yyc < '÷' {
-		goto yyS2
-	} else if yyc < 'ø' {
+		if yyc <= '×' {
+			goto yyS7
+		}
+	} else if yyc <= '÷' {
 		goto yyS11
-	} else if yyc <= '\U0010ffff' {
-		goto yyS2
 	}
+	goto yyS2
 
-	goto yyfin
 yyS2:
 	yyacc = 9
 	yy.t = yy.r
-
 	goto yyfin
+
 yyS3:
 	yyacc = 7
 	yy.t = yy.r
-
+	yyc = yy.next()
+	if yyc < '\v' {
+		if yyc == '\t' {
+			goto yyS3
+		}
+	} else if yyc < ' ' {
+		if yyc <= '\r' {
+			goto yyS3
+		}
+	} else if yyc <= ' ' {
+		goto yyS3
+	}
 	goto yyfin
+
 yyS4:
 	yyacc = 6
 	yy.t = yy.r
-
 	goto yyfin
+
 yyS5:
 	yyacc = 4
 	yy.t = yy.r
-
 	goto yyfin
+
 yyS6:
 	yyacc = 5
 	yy.t = yy.r
-
 	goto yyfin
+
 yyS7:
 	yyacc = 2
 	yy.t = yy.r
-
 	goto yyfin
+
 yyS8:
 	yyacc = 0
 	yy.t = yy.r
-
 	goto yyfin
+
 yyS9:
 	yyacc = 1
 	yy.t = yy.r
-
 	goto yyfin
+
 yyS10:
 	yyacc = 9
 	yy.t = yy.r
@@ -240,26 +239,26 @@ yyS10:
 	if '0' <= yyc && yyc <= '9' {
 		goto yyS13
 	}
-
 	goto yyfin
+
 yyS11:
 	yyacc = 3
 	yy.t = yy.r
-
 	goto yyfin
+
 yyS12:
 	yyacc = 8
 	yy.t = yy.r
 	yyc = yy.next()
 	if yyc < '0' {
-		if '.' <= yyc && yyc <= '.' {
+		if yyc == '.' {
 			goto yyS13
 		}
 	} else if yyc <= '9' {
 		goto yyS12
 	}
-
 	goto yyfin
+
 yyS13:
 	yyacc = 8
 	yy.t = yy.r
@@ -267,13 +266,13 @@ yyS13:
 	if '0' <= yyc && yyc <= '9' {
 		goto yyS13
 	}
-
 	goto yyfin
 
 yyfin:
 	yy.r = yy.t // put back read-ahead bytes
 	yytext := yy.buf[yy.s:yy.r]
-	if len(yytext) == 0 {
+	yyleng := len(yytext)
+	if yyleng == 0 {
 		if yy.err != nil {
 			return 0
 		}
