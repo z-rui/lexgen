@@ -381,7 +381,7 @@ L:
 	return Concat(frags)
 }
 
-func (p *parser) parsePrimary() frag {
+func (p *parser) parsePrimary() (ret frag) {
 	/* primary
 	: CHARSET
 	| NAME
@@ -389,33 +389,33 @@ func (p *parser) parsePrimary() frag {
 	| "(" re ")"
 	| primary "*"
 	| primary "+"
+	| primary "?"
 	*/
-	var frag frag
 	c, _ := p.rd.ReadByte()
 	switch c {
 	case '[': // CHARSET
 		cs := p.scanCharset()
-		frag = Literal(cs)
+		ret = Literal(cs)
 	case '.': // = [^\n]
-		frag = Literal(rnSet{{'\n', '\n'}}.Canon(true))
+		ret = Literal(rnSet{{'\n', '\n'}}.Canon(true))
 	case '{': // NAME
 		name := p.scanIdent()
 		var ok bool
-		frag, ok = p.defs[name]
+		ret, ok = p.defs[name]
 		if ok {
-			frag = frag.Clone()
+			ret = ret.Clone()
 		} else {
 			p.errorf("undefined %q", name)
-			frag = Epsilon()
+			ret = Epsilon()
 		}
 		if c, _ := p.rd.ReadByte(); c != '}' {
 			p.error("missing '}'")
 			p.rd.UnreadByte()
 		}
 	case '"': // LITERAL
-		frag = p.parseLiteral()
+		ret = p.parseLiteral()
 	case '(':
-		frag = p.parseRE()
+		ret = p.parseRE()
 		if c, _ := p.rd.ReadByte(); c != ')' {
 			p.error("missing ')'")
 			p.rd.UnreadByte()
@@ -423,22 +423,24 @@ func (p *parser) parsePrimary() frag {
 	default:
 		p.rd.UnreadByte()
 		r, _ := p.scanRune()
-		frag = Literal(rnSet{{r, r}})
+		ret = Literal(rnSet{{r, r}})
 	}
 L:
 	for {
 		c, _ := p.rd.ReadByte()
 		switch c {
 		case '*':
-			frag = frag.Kleene(false)
+			ret = ret.Kleene(false)
 		case '+':
-			frag = frag.Kleene(true)
+			ret = ret.Kleene(true)
+		case '?':
+			ret = Alter([]frag{ret, Epsilon()})
 		default:
 			p.rd.UnreadByte()
 			break L
 		}
 	}
-	return frag
+	return
 }
 
 func (p *parser) parseLiteral() frag {
